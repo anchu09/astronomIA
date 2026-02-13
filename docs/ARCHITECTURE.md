@@ -1,8 +1,8 @@
-# Estructura del proyecto y guía de desarrollo
+# Estructura del proyecto y guía de desarrollo (astronomIA-galaxy-api)
 
 ## Visión general
 
-El repo es un **monorepo** con tres capas claras:
+Este repo (**astronomIA-galaxy-api**) es un monorepo con tres capas claras:
 
 1. **API** (`apps/api`) — Entrada HTTP; solo recibe requests y delega en el agente.
 2. **Agente** (`packages/galaxy_agent`) — Orquesta tareas, tools y LangChain; llama al core.
@@ -25,7 +25,7 @@ Cliente/n8n  →  POST /analyze  →  apps.api.main  →  AgentRunner.run()
 ## Árbol y responsabilidades
 
 ```
-astronomIA/
+astronomIA-galaxy-api/
 ├── apps/
 │   └── api/                    # Capa HTTP
 │       ├── main.py             # App FastAPI, rutas /health y /analyze

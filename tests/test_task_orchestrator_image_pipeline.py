@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import pytest
@@ -20,7 +20,7 @@ class _InMemoryArtifactStore(ArtifactStore):
 
     def __init__(self) -> None:  # type: ignore[no-untyped-def]
         super().__init__(base_dir="artifacts-test")
-        self.saved_images: Dict[str, bytes] = {}
+        self.saved_images: dict[str, bytes] = {}
 
     def save_image(self, request_id: str, image_bytes: bytes) -> str:  # type: ignore[override]
         self.saved_images[request_id] = image_bytes
@@ -31,7 +31,7 @@ class _InMemoryArtifactStore(ArtifactStore):
 def _make_request(
     request_id: str = "req-1",
     target_name: str | None = "M81",
-    options: Dict[str, Any] | None = None,
+    options: dict[str, Any] | None = None,
 ) -> AnalyzeRequest:
     return AnalyzeRequest(
         request_id=request_id,
@@ -62,7 +62,7 @@ def _fake_response() -> Any:
 def test_visible_band_prefers_sdss_first(monkeypatch: pytest.MonkeyPatch) -> None:
     """band=visible debe intentar primero catalog=SDSS y guardar una imagen."""
 
-    calls: list[Dict[str, Any]] = []
+    calls: list[dict[str, Any]] = []
 
     def fake_resolve_and_fetch(**kwargs: Any) -> Any:
         calls.append(kwargs)
@@ -106,7 +106,7 @@ def test_visible_band_prefers_sdss_first(monkeypatch: pytest.MonkeyPatch) -> Non
 def test_infrared_band_usa_mapping_de_band(monkeypatch: pytest.MonkeyPatch) -> None:
     """band=infrared debe delegar en el mapeo de banda (sin forzar SDSS)."""
 
-    calls: list[Dict[str, Any]] = []
+    calls: list[dict[str, Any]] = []
 
     def fake_resolve_and_fetch(**kwargs: Any) -> Any:
         calls.append(kwargs)
@@ -151,7 +151,7 @@ def test_infrared_band_usa_mapping_de_band(monkeypatch: pytest.MonkeyPatch) -> N
 def test_visible_band_fallback_si_sdss_falla(monkeypatch: pytest.MonkeyPatch) -> None:
     """Si SDSS falla para visible, debe intentarse el siguiente survey de la banda."""
 
-    calls: list[Dict[str, Any]] = []
+    calls: list[dict[str, Any]] = []
 
     def fake_resolve_and_fetch(**kwargs: Any) -> Any:
         calls.append(kwargs)

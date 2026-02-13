@@ -25,7 +25,7 @@ IMAGE_DOWNLOAD_TIMEOUT_SEC = 30
 
 
 def _ssl_verify() -> bool:
-    """Use REQUESTS_VERIFY_SSL env (default true). Set to false if you get certificate errors (e.g. Zscaler)."""
+    """REQUESTS_VERIFY_SSL env (default true). Set false for certificate errors (e.g. Zscaler)."""
     val = os.environ.get("REQUESTS_VERIFY_SSL", "true").strip().lower()
     return val not in ("0", "false", "no", "off")
 
@@ -39,7 +39,7 @@ class TaskOrchestrator:
         artifacts = []
         warnings: list[str] = []
 
-        # If we have a target but no image yet: resolve name → get URL → download → save for analysis.
+        # No image yet: resolve target → get URL → download → save for analysis.
         if request.image_url is None and request.target is not None:
             request = self._resolve_fetch_and_download(request)
 
@@ -74,7 +74,9 @@ class TaskOrchestrator:
             extra={"request_id": request.request_id, "task": request.task, "event": "analysis"},
         )
 
-        return self._build_response(request, summary, results, artifacts, warnings, langsmith_enabled)
+        return self._build_response(
+            request, summary, results, artifacts, warnings, langsmith_enabled
+        )
 
     def _resolve_fetch_and_download(self, request: AnalyzeRequest) -> AnalyzeRequest:
         """Resolve target (by name or options ra_deg/dec_deg), get image URL, download, save.

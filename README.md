@@ -1,7 +1,7 @@
-# astronomIA - Agentic Galaxy Analysis Backend
+# astronomIA-galaxy-api
 
-Backend profesional y escalable para un chatbot agéntico de análisis de galaxias.
-`n8n` vive fuera de este repositorio y consumirá el endpoint HTTP `POST /analyze`.
+API de análisis de galaxias: backend agéntico (segmentación, medidas, resolución de objetivos, obtención de imágenes).  
+El orquestador (n8n u otro) vive fuera de este repositorio y consumirá el endpoint `POST /analyze`.
 
 ## Stack y objetivos
 
@@ -65,7 +65,7 @@ Backend profesional y escalable para un chatbot agéntico de análisis de galaxi
 1. Crea `.env` en la raíz (copia de `.env.example`) y **rellena `OPENAI_API_KEY`**.
 2. Desde la raíz: `docker compose up --build`.
 3. API en `http://localhost:8000`. Health: `curl http://localhost:8000/health`.  
-   Si sale "container name already in use": `docker rm -f astronomia-api` y vuelve a levantar.  
+   Si sale "container name already in use": `docker rm -f astronomia-galaxy-api` y vuelve a levantar.  
    **GPU (NVIDIA):** `docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build`.
 
    **E2E real (prompt → imagen en disco):** con la API levantada, `python scripts/e2e_real.py`. Comprueba que la imagen queda en `artifacts/test-1/image.jpg`.

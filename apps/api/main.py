@@ -18,7 +18,7 @@ from packages.galaxy_agent.agent_runner import AgentRunner
 from packages.galaxy_agent.logging_utils import setup_logging
 from packages.galaxy_agent.models import AnalyzeRequest, AnalyzeResponse
 
-app = FastAPI(title="Galaxy Agentic Chatbot API", version="0.1.0")
+app = FastAPI(title="astronomIA Galaxy API", version="0.1.0")
 logger = logging.getLogger(__name__)
 
 
@@ -37,7 +37,10 @@ def on_startup() -> None:
     logger.info("api_started", extra={"event": "startup"})
     logger.info(
         "openai_check",
-        extra={"event": "startup", "openai_configured": bool((os.getenv("OPENAI_API_KEY") or "").strip())},
+        extra={
+            "event": "startup",
+            "openai_configured": bool((os.getenv("OPENAI_API_KEY") or "").strip()),
+        },
     )
 
 

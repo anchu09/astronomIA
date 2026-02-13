@@ -5,6 +5,8 @@ from __future__ import annotations
 from packages.galaxy_core.domain.imaging import BAND_TO_SURVEY, ResolvedTarget
 from packages.galaxy_core.infrastructure.hips_client import (
     SURVEY_TO_HIPS,
+)
+from packages.galaxy_core.infrastructure.hips_client import (
     get_image_url as hips_get_image_url,
 )
 from packages.galaxy_core.infrastructure.sdss_client import get_image_url as sdss_get_image_url

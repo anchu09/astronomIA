@@ -1,7 +1,7 @@
 [project]
-name = "astronomia-agentic-chatbot"
+name = "astronomia-galaxy-api"
 version = "0.1.0"
-description = "Monorepo scaffold for an agentic galaxy analysis backend."
+description = "API de análisis de galaxias (astronomIA-galaxy-api). Backend agéntico: segmentación, medidas, resolución y obtención de imágenes."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -43,6 +43,9 @@ select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.Depends", "fastapi.Header"]
+
+[tool.ruff.lint.per-file-ignores]
+"apps/api/main.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"

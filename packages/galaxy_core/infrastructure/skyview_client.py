@@ -66,7 +66,7 @@ def get_image_url(
         SKYVIEW_RUNQUERY_URL,
         data=data,
         timeout=timeout_s,
-        headers={"User-Agent": "astronomIA/1.0"},
+        headers={"User-Agent": "astronomIA-galaxy-api/1.0"},
         verify=_ssl_verify(),
         stream=True,
     ) as response:

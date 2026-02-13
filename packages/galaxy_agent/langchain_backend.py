@@ -6,7 +6,7 @@ from typing import Any
 
 from openai import OpenAI
 
-from packages.galaxy_agent.domain.models import TaskType, Target
+from packages.galaxy_agent.domain.models import Target, TaskType
 from packages.galaxy_agent.models import AnalyzeRequest
 
 
@@ -58,8 +58,8 @@ class LangChainBackend:
             "- dec_deg: number or null (declination in degrees).\n"
             "- band: 'visible', 'infrared', 'uv' or null.\n"
             "- size_arcmin: number (field of view in arcminutes, default 10.0 if not specified).\n"
-            "If both name and coordinates are present, prefer the coordinates but still return the name.\n"
-            "If the user does not specify some fields, set them to null (or 10.0 for size_arcmin).\n"
+            "If name and coordinates are present, prefer coordinates but still return name.\n"
+            "If the user omits fields, set them to null (or 10.0 for size_arcmin).\n"
         )
 
         response = self._client.chat.completions.create(
