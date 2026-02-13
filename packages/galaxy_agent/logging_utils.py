@@ -13,7 +13,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
-        extra_keys = ("request_id", "task", "event")
+        extra_keys = ("request_id", "task", "event", "openai_configured")
         for key in extra_keys:
             value = getattr(record, key, None)
             if value is not None:

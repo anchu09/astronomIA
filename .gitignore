@@ -25,3 +25,4 @@ data/
 
 # Env
 .env
+docker-compose.openai.yml

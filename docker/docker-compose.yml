@@ -1,14 +1,4 @@
-version: "3.9"
-
-services:
-  api:
-    build:
-      context: ..
-      dockerfile: docker/Dockerfile
-    container_name: astronomia-api
-    env_file:
-      - ../.env
-    ports:
-      - "8000:8000"
-    volumes:
-      - ../artifacts:/app/artifacts
+# Incluye el compose de la raíz (carga .env automático).
+# Desde la raíz:  docker compose up --build   o   docker compose -f docker/docker-compose.yml up --build
+include:
+  - ../docker-compose.yml

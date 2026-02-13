@@ -37,20 +37,20 @@ class AgentRunner:
 
     def run(self, request: AnalyzeRequest) -> AnalyzeResponse:
         try:
-            resolved = self._resolve_request(request)
+            enriched = self.langchain_backend.enrich_request(request)
+            resolved = self._resolve_request(enriched)
             self._prepare_llm_plan(resolved)
             return self.orchestrator.run(request=resolved, langsmith_enabled=self.langsmith_enabled)
-        except Exception as exc:
-            task = getattr(request, "task", None) or "unknown"
+        except Exception:
             logger.exception(
                 "analysis_failed",
-                extra={"request_id": request.request_id, "task": task, "event": "error"},
+                extra={"request_id": request.request_id, "event": "error"},
             )
             return AnalyzeResponse(
                 request_id=request.request_id,
                 status="error",
-                summary="Analysis failed.",
-                results={"error_code": "ANALYSIS_FAILED", "detail": str(exc)},
+                summary="No se pudo completar el análisis. Revisa los logs o inténtalo de nuevo.",
+                results={},
                 artifacts=[],
                 provenance=Provenance(
                     versions={
@@ -59,7 +59,7 @@ class AgentRunner:
                         "langsmith_enabled": str(self.langsmith_enabled).lower(),
                     }
                 ),
-                warnings=["Check logs for stack trace."],
+                warnings=[],
             )
 
     def _resolve_request(self, request: AnalyzeRequest) -> AnalyzeRequest:

@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from packages.galaxy_core.domain.imaging import BAND_TO_SURVEY, ResolvedTarget
+from packages.galaxy_core.infrastructure.hips_client import (
+    SURVEY_TO_HIPS,
+    get_image_url as hips_get_image_url,
+)
 from packages.galaxy_core.infrastructure.sdss_client import get_image_url as sdss_get_image_url
 from packages.galaxy_core.infrastructure.sesame_client import resolve as sesame_resolve
 from packages.galaxy_core.infrastructure.skyview_client import (
@@ -51,10 +55,18 @@ def resolve_and_fetch(
         raise ValueError("Provide either band or catalog.")
 
     if survey_str.upper() == "SDSS":
-        # SDSS: direct URL, no network call (fast; coverage mainly northern sky).
+        # SDSS: direct URL (fast; coverage mainly northern sky).
         image_url = sdss_get_image_url(
             ra_deg=ra_deg,
             dec_deg=dec_deg,
+            size_arcmin=size_arcmin,
+        )
+    elif survey_str in SURVEY_TO_HIPS:
+        # 2MASS-J, GALEX, DSS: CDS HiPS (más estable que SkyView).
+        image_url = hips_get_image_url(
+            ra_deg=ra_deg,
+            dec_deg=dec_deg,
+            survey=survey_str,
             size_arcmin=size_arcmin,
         )
     else:

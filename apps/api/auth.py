@@ -8,15 +8,9 @@ from apps.api.config import Settings, get_settings
 
 
 def verify_api_key(
+    settings: Annotated[Settings, Depends(get_settings)],
     x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
-    settings: Annotated[Settings | None, Depends(get_settings)] = None,
 ) -> None:
-    if settings is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": "SETTINGS_MISSING", "message": "Failed to load API settings."},
-        )
-
     if not settings.require_api_key:
         return
 

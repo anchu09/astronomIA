@@ -14,7 +14,9 @@ RUN pip install --no-cache-dir \
     numpy \
     pillow \
     requests \
-    langchain
+    langchain \
+    openai \
+    python-dotenv
 
 COPY . /app
 

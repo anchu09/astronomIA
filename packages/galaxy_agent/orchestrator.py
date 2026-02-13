@@ -7,7 +7,7 @@ from typing import Any
 import requests
 
 from packages.galaxy_agent.artifacts import ArtifactStore
-from packages.galaxy_agent.models import AnalyzeRequest, AnalyzeResponse, Provenance
+from packages.galaxy_agent.models import AnalyzeRequest, AnalyzeResponse, Artifact, Provenance
 from packages.galaxy_agent.tools import (
     load_image,
     tool_generate_report,
@@ -42,6 +42,9 @@ class TaskOrchestrator:
         # If we have a target but no image yet: resolve name → get URL → download → save for analysis.
         if request.image_url is None and request.target is not None:
             request = self._resolve_fetch_and_download(request)
+
+        if request.image_url:
+            artifacts.append(Artifact(type="image", path=request.image_url))
 
         image = load_image(request.image_url)
         segmentation = tool_segment(self.analyzer, image)
@@ -79,6 +82,7 @@ class TaskOrchestrator:
         options may contain: catalog, band, size_arcmin, ra_deg, dec_deg.
         - If ra_deg and dec_deg in options → resolve by coordinates; else by target.name.
         - catalog or band (visible, infrared, uv, etc.) choose survey; default catalog SDSS.
+        - For visible/optical bands we prefer SDSS first and fall back to the band-mapped survey.
         """
         opts = request.options or {}
         ra_opt = opts.get("ra_deg")
@@ -86,43 +90,80 @@ class TaskOrchestrator:
         catalog_opt = opts.get("catalog")
         band_opt = opts.get("band")
         size_opt = float(opts.get("size_arcmin", 10.0))
-        # resolve_and_fetch needs exactly one of band or catalog; default SDSS for speed.
+        # Build a small ordered list of (catalog, band) attempts so we can be
+        # robust to gaps in coverage (e.g. SDSS footprint) and flaky services
+        # (e.g. SkyView). Exactly one of catalog or band is non-None per entry.
+        attempts: list[tuple[str | None, str | None]] = []
         if catalog_opt:
-            catalog_param, band_param = str(catalog_opt).strip(), None
+            # Caller explicitly requested a catalog; honor it as the only attempt.
+            attempts.append((str(catalog_opt).strip(), None))
         elif band_opt:
-            catalog_param, band_param = None, str(band_opt).strip()
+            band_str = str(band_opt).strip()
+            band_lower = band_str.lower()
+            # For optical/visible bands, prefer SDSS first (fast, direct URL)
+            # and fall back to the SkyView-mapped survey for that band.
+            if band_lower in ("visible", "optical"):
+                attempts.append(("SDSS", None))
+            attempts.append((None, band_str))
         else:
-            catalog_param, band_param = "SDSS", None
+            # No catalog/band specified: default to SDSS for a quick optical view.
+            attempts.append(("SDSS", None))
 
-        if ra_opt is not None and dec_opt is not None:
-            resolved = resolve_and_fetch(
-                ra_deg=float(ra_opt),
-                dec_deg=float(dec_opt),
-                catalog=catalog_param,
-                band=band_param,
-                size_arcmin=size_opt,
-            )
-        else:
-            name = (request.target and request.target.name or "").strip()
-            if not name:
-                raise ValueError(
-                    "Target name is empty; provide target.name or options ra_deg/dec_deg."
+        errors: list[str] = []
+
+        for catalog_param, band_param in attempts:
+            try:
+                if ra_opt is not None and dec_opt is not None:
+                    resolved = resolve_and_fetch(
+                        ra_deg=float(ra_opt),
+                        dec_deg=float(dec_opt),
+                        catalog=catalog_param,
+                        band=band_param,
+                        size_arcmin=size_opt,
+                    )
+                else:
+                    name = (request.target and request.target.name or "").strip()
+                    if not name:
+                        raise ValueError(
+                            "Target name is empty; provide target.name or options ra_deg/dec_deg."
+                        )
+                    resolved = resolve_and_fetch(
+                        name=name,
+                        catalog=catalog_param,
+                        band=band_param,
+                        size_arcmin=size_opt,
+                    )
+
+                resp = requests.get(
+                    resolved.image_url,
+                    timeout=IMAGE_DOWNLOAD_TIMEOUT_SEC,
+                    verify=_ssl_verify(),
                 )
-            resolved = resolve_and_fetch(
-                name=name,
-                catalog=catalog_param,
-                band=band_param,
-                size_arcmin=size_opt,
-            )
+                resp.raise_for_status()
+                image_path = self.artifact_store.save_image(request.request_id, resp.content)
+                return request.model_copy(update={"image_url": image_path})
+            except Exception as exc:  # noqa: BLE001
+                label = catalog_param or band_param or "default"
+                logger.warning(
+                    "image_fetch_failed",
+                    extra={
+                        "request_id": request.request_id,
+                        "catalog": catalog_param,
+                        "band": band_param,
+                        "error": str(exc),
+                        "event": "image_fetch_error",
+                        "attempt": label,
+                    },
+                )
+                errors.append(f"{label}: {exc}")
+                continue
 
-        resp = requests.get(
-            resolved.image_url,
-            timeout=IMAGE_DOWNLOAD_TIMEOUT_SEC,
-            verify=_ssl_verify(),
+        # If we exhaust all attempts, bubble up a clear error so the agent and
+        # user can see what was tried.
+        raise RuntimeError(
+            f"Failed to resolve and fetch image after {len(attempts)} attempt(s): "
+            + "; ".join(errors)
         )
-        resp.raise_for_status()
-        image_path = self.artifact_store.save_image(request.request_id, resp.content)
-        return request.model_copy(update={"image_url": image_path})
 
     def _build_response(
         self,

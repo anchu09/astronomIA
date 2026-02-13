@@ -60,6 +60,16 @@ Backend profesional y escalable para un chatbot agéntico de análisis de galaxi
    uv run uvicorn apps.api.main:app --reload
    ```
 
+## Levantar con Docker
+
+1. Crea `.env` en la raíz (copia de `.env.example`) y **rellena `OPENAI_API_KEY`**.
+2. Desde la raíz: `docker compose up --build`.
+3. API en `http://localhost:8000`. Health: `curl http://localhost:8000/health`.  
+   Si sale "container name already in use": `docker rm -f astronomia-api` y vuelve a levantar.  
+   **GPU (NVIDIA):** `docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build`.
+
+   **E2E real (prompt → imagen en disco):** con la API levantada, `python scripts/e2e_real.py`. Comprueba que la imagen queda en `artifacts/test-1/image.jpg`.
+
 ## Tests, lint y type-check
 
 ```bash
@@ -134,50 +144,24 @@ Para desarrollo sin API key, usar en `.env`:
 REQUIRE_API_KEY=false
 ```
 
-## Docker
+### Ejecutar comandos dentro del contenedor
 
-Útil en Windows (sin instalar Python) o para tener el mismo entorno que en producción. Desde la carpeta `docker/`:
-
-### CPU
+Desde la raíz del repo (con el mismo compose):
 
 ```bash
-docker compose -f docker-compose.yml up --build
+docker compose run --rm api python scripts/run_pipeline.py M81
 ```
 
-La API queda en `http://localhost:8000`. Los artifacts se guardan en `../artifacts` (volumen montado).
-
-### Ejecutar tests dentro del contenedor
-
-Para probar resolve/fetch/analyze sin Python en el host (p. ej. en Windows):
-
-```bash
-cd docker
-docker compose -f docker-compose.yml run --rm api python scripts/test_analyze_multi.py --sdss-only
-```
-
-Todos los casos (incluido SkyView):
-
-```bash
-docker compose -f docker-compose.yml run --rm api python scripts/test_analyze_multi.py
-```
-
-Si en tu red hay problemas de SSL (proxy corporativo), crea o edita `.env` y añade `REQUESTS_VERIFY_SSL=false`.
-
-### GPU (NVIDIA opcional)
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
-```
+Si hay problemas de SSL (proxy): en `.env` añade `REQUESTS_VERIFY_SSL=false`.
 
 ## Variables de entorno
 
 Ver `.env.example`:
 
-- `API_KEY`
-- `REQUIRE_API_KEY`
-- `ARTIFACT_DIR`
-- `LOG_LEVEL`
-- `LANGSMITH_API_KEY` (opcional)
-- `LANGSMITH_TRACING` (opcional)
-- `REQUESTS_VERIFY_SSL` (opcional, default `true`; poner `false` si hay errores de certificado SSL con SESAME/SkyView)
-- `SKYVIEW_TIMEOUT` (opcional, segundos; default 240; subir si SkyView hace timeout)
+- `OPENAI_API_KEY` — necesario para el agente
+- `OPENAI_MODEL` — modelo OpenAI (default `gpt-4.1-mini`)
+- `API_KEY`, `REQUIRE_API_KEY`, `ARTIFACT_DIR`, `LOG_LEVEL`
+- `LANGSMITH_API_KEY`, `LANGSMITH_TRACING` (opcional)
+- `REQUESTS_VERIFY_SSL` (opcional; `false` si hay problemas de certificado)
+- `SKYVIEW_TIMEOUT` (opcional, default 240)
+

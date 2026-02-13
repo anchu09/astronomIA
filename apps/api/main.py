@@ -1,9 +1,16 @@
 from __future__ import annotations
 
 import logging
+import os
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import Depends, FastAPI
+from dotenv import load_dotenv
+
+load_dotenv(override=False)
+
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.responses import FileResponse
 
 from apps.api.auth import verify_api_key
 from apps.api.config import Settings, get_settings
@@ -15,10 +22,7 @@ app = FastAPI(title="Galaxy Agentic Chatbot API", version="0.1.0")
 logger = logging.getLogger(__name__)
 
 
-def get_runner(settings: Annotated[Settings | None, Depends(get_settings)] = None) -> AgentRunner:
-    if settings is None:
-        raise RuntimeError("Settings dependency not available")
-
+def get_runner(settings: Annotated[Settings, Depends(get_settings)]) -> AgentRunner:
     langsmith_enabled = bool(settings.langsmith_api_key) or settings.langsmith_tracing
     return AgentRunner(
         artifact_dir=settings.artifact_dir,
@@ -31,6 +35,10 @@ def on_startup() -> None:
     settings = get_settings()
     setup_logging(settings.log_level)
     logger.info("api_started", extra={"event": "startup"})
+    logger.info(
+        "openai_check",
+        extra={"event": "startup", "openai_configured": bool((os.getenv("OPENAI_API_KEY") or "").strip())},
+    )
 
 
 @app.get("/health")
@@ -41,8 +49,17 @@ def health() -> dict[str, str]:
 @app.post("/analyze", response_model=AnalyzeResponse, dependencies=[Depends(verify_api_key)])
 def analyze(
     request: AnalyzeRequest,
-    runner: Annotated[AgentRunner | None, Depends(get_runner)] = None,
+    runner: Annotated[AgentRunner, Depends(get_runner)],
 ) -> AnalyzeResponse:
-    if runner is None:
-        raise RuntimeError("Agent runner dependency not available")
     return runner.run(request)
+
+
+@app.get("/artifacts/{request_id}/image", dependencies=[Depends(verify_api_key)])
+def get_artifact_image(
+    request_id: str,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> FileResponse:
+    path = Path(settings.artifact_dir) / request_id / "image.jpg"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="Image not found for this request_id.")
+    return FileResponse(path, media_type="image/jpeg")
